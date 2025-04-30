@@ -17,6 +17,16 @@ from stream_processor import VProcessor
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator
 
+from keras import backend as K
+from keras.models import Model
+from keras.layers import (
+    Input, Conv2D, BatchNormalization, Activation,
+    MaxPooling2D, Dropout, Reshape, Dense,
+    Bidirectional, LSTM
+)
+
+from ocr_utils import preprocess_image_gray, build_inference_model, ctc_decode, num_to_text
+
 # === 1) Page configuration ===
 st.set_page_config(
     page_title="Ứng dụng Xử lý Ảnh",
@@ -54,7 +64,12 @@ sidebar.image("logo.jpg", use_column_width=True)
 sidebar.markdown("---")
 menu = sidebar.radio(
     "Chọn chức năng:",
-    ("Nhận diện khuôn mặt", "Nhận diện đối tượng", "Xử lý ảnh"),
+    (
+        "Nhận diện khuôn mặt",
+        "Nhận diện đối tượng",
+        "Xử lý ảnh số",
+        "Đọc chữ viết tay"
+    )
 )
 
 st.title("🖼️ Ứng dụng xử lý hình ảnh")
@@ -127,13 +142,10 @@ if menu == "Nhận diện khuôn mặt":
                 stframe.image(out_frame, channels="BGR", width=640)
             cap.release()
 
-    
-
     elif option == "Stream Camera":
         st.subheader("📡 Streaming từ webcam (WebRTC)")
         col_live, _ = st.columns([1, 2])
         start_streaming_in_column(col_live, VProcessor)
-
 
 # === 6) Nhận diện đối tượng ===
 elif menu == "Nhận diện đối tượng":
@@ -163,11 +175,27 @@ elif menu == "Nhận diện đối tượng":
 
             st.image(img_out, caption="Kết quả nhận diện", channels="BGR", width=600)
 
+# === 7) Xử lý ảnh số ===
+elif menu == "Xử lý ảnh số":
+    st.header("🔢 Xử lý ảnh số")
+    st.info("Chức năng Xử lý ảnh số đang được phát triển...")
 
-# === 7) Xử lý ảnh ===
-elif menu == "Xử lý ảnh":
-    st.header("🖼️ Xử lý ảnh")
-    st.info("Chức năng đang được phát triển...")
+# === 8) Đọc chữ viết tay ===
+elif menu == "Đọc chữ viết tay":
+    st.header("✍️ Đọc chữ viết tay")
+    uploaded = st.file_uploader("Tải ảnh viết tay lên", type=["jpg","jpeg","png","bmp"])
+    if uploaded:
+        data = uploaded.read()
+        orig = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
+        st.image(orig, caption="Ảnh viết tay gốc", use_column_width=True, clamp=True, channels="GRAY")
+
+        x = preprocess_image_gray(orig)
+        model_path = os.path.join("model", "best_model.h5")
+        model_ocr = build_inference_model(model_path)
+        preds = model_ocr.predict(x)
+        seq = ctc_decode(preds)[0]
+        text = num_to_text(seq)
+        st.success(f"**Kết quả OCR:** {text}")
 
 st.markdown("---")
 st.caption("Demo bởi HieuDuong.")
