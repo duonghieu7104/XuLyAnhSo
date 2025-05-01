@@ -4,6 +4,11 @@ import cv2
 import numpy as np
 import tempfile
 
+from tkinter.filedialog import askopenfilename, asksaveasfilename
+import chapter3 as c3
+import chapter4 as c4
+import chapter9 as c9
+
 from face_recognition_utils import recognize_from_ip_camera
 from streamlit_webrtc import (
     webrtc_streamer,
@@ -178,24 +183,187 @@ elif menu == "Nhận diện đối tượng":
 # === 7) Xử lý ảnh số ===
 elif menu == "Xử lý ảnh số":
     st.header("🔢 Xử lý ảnh số")
-    st.info("Chức năng Xử lý ảnh số đang được phát triển...")
+    def load_image():
+        file_path = st.file_uploader("Choose an image...", type=["jpg", "png", "tif", "bmp", "webp"])
+        if file_path is not None:
+        # Đọc ảnh và kiểm tra xem nó có hợp lệ không
+           image = cv2.imdecode(np.frombuffer(file_path.read(), np.uint8), cv2.IMREAD_COLOR)
+           if image is None:
+            st.error("Error: Image could not be loaded.")
+            return None
+        st.image(image, channels="BGR", caption="Uploaded Image.", use_column_width=True)
+        return image
+    
+        return None     
+
+    def save_image(img):
+       if st.button("Save Processed Image"):
+           file_path = asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("BMP files", "*.bmp")])
+           if file_path:
+            cv2.imwrite(file_path, img)
+            st.success(f"Image saved successfully as {file_path}")
+            
+            
+    def chapter3_operations(img):
+       st.subheader("Chapter 3 Operations")
+       operation = st.selectbox("Choose an operation", [
+        "Negative", "NegativeColor", "Logarit", "Power", "Piecewise Line",
+        "Histogram", "Hist Equal", "Hist Equal Color", "Local Hist", "Hist Stat",
+        "Smooth Box", "Smooth Gauss", "Median Filter", "Sharpening", 
+        "Sharpening Mask", "Grandient"
+    ])
+    
+       img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Chuyển sang ảnh xám
+       imgout = None  # Khởi tạo biến ảnh đầu ra
+    
+    # Áp dụng các bộ lọc theo lựa chọn của người dùng
+       if operation == "Negative":
+        imgout = c3.Negative(img_gray)
+       elif operation == "NegativeColor":
+        imgout = c3.NegativeColor(img)
+       elif operation == "Logarit":
+        imgout = c3.Logarit(img_gray)
+       elif operation == "Power":
+        imgout = c3.Power(img_gray)
+       elif operation == "Piecewise Line":
+        imgout = c3.PiecewiseLine(img_gray)
+       elif operation == "Histogram":
+        imgout = c3.Histogram(img_gray)
+       elif operation == "Hist Equal":
+        imgout = cv2.equalizeHist(img_gray)
+       elif operation == "Hist Equal Color":
+        imgout = c3.HistEqualColor(img)
+       elif operation == "Local Hist":
+        imgout = c3.LocalHist(img_gray)
+       elif operation == "Hist Stat":
+        imgout = c3.HistStat(img_gray)
+       elif operation == "Smooth Box":
+        imgout = cv2.boxFilter(img_gray, cv2.CV_8UC1, (21, 21))
+       elif operation == "Smooth Gauss":
+        imgout = cv2.GaussianBlur(img_gray, (43, 43), 7.0)
+       elif operation == "Median Filter":
+        imgout = cv2.medianBlur(img_gray, 5)
+       elif operation == "Sharpening":
+        imgout = c3.Sharpening(img_gray)
+       elif operation == "Sharpening Mask":
+        imgout = c3.SharpeningMask(img_gray)
+       elif operation == "Grandient":
+        imgout = c3.Grandient(img_gray)
+
+    # Giảm kích thước hiển thị ảnh để dễ xem
+       img_resized = cv2.resize(img, (300, 300))
+       imgout_resized = cv2.resize(imgout, (300, 300))
+
+    # Hiển thị hai ảnh cạnh nhau
+       col1, col2 = st.columns(2)
+       with col1:
+           st.image(img_resized, caption="Ảnh Gốc", use_column_width=True)
+       with col2:
+           st.image(imgout_resized, caption="Ảnh Xử Lý", use_column_width=True)
+
+       return imgout
+
+    def chapter4_operations(img):
+        st.subheader("Chapter 4 Operations")
+        operation = st.selectbox("Choose an operation", ["Spectrum", "Remove Morie", "Remove Inference", "Create Motion"])
+    
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Chuyển sang grayscale nếu cần
+        imgout = None
+
+        if operation == "Spectrum":
+           imgout = c4.Spectrum(img_gray)  # Nếu Spectrum chỉ hoạt động với ảnh xám
+        elif operation == "Remove Morie":
+           imgout = c4.RemoveMorie(img_gray)  # Dùng ảnh xám để tránh lỗi unpacking
+        elif operation == "Remove Inference":
+           imgout = c4.RemoveInference(img_gray)  # Nếu cần grayscale
+        elif operation == "Create Motion":
+           imgout = c4.CreateMotion(img_gray)  # Nếu hàm cần ảnh xám
+
+        if imgout is not None:
+           img_resized = cv2.resize(img, (300, 300))
+           imgout_resized = cv2.resize(imgout, (300, 300))
+
+        # Hiển thị hai ảnh cạnh nhau
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(img_resized, caption="Ảnh Gốc", use_column_width=True)
+        with col2:
+            st.image(imgout_resized, caption="Ảnh Xử Lý", use_column_width=True)
+
+        return imgout 
+         
+    def chapter9_operations(img):
+        st.subheader("Chapter 9 Operations")
+        operation = st.selectbox("Choose an operation", ["Erosion", "Dilation", "Boundary", "Contour"])
+
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Chuyển sang ảnh xám trước khi xử lý
+        imgout = None
+
+        if operation == "Erosion":
+           imgout = c9.Erosion(img_gray)
+        elif operation == "Dilation":
+           imgout = c9.Dilation(img_gray)
+        elif operation == "Boundary":
+           imgout = c9.Boundary(img_gray)
+        elif operation == "Contour":
+           imgout = c9.Contour(img_gray)  # Tránh lỗi unpacking
+
+        if imgout is not None:
+           img_resized = cv2.resize(img, (300, 300))
+           imgout_resized = cv2.resize(imgout, (300, 300))
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(img_resized, caption="Ảnh Gốc", use_column_width=True)
+        with col2:
+            st.image(imgout_resized, caption="Ảnh Xử Lý", use_column_width=True)
+
+        return imgout
+     
+            
+    uploaded_file = st.file_uploader("Tải ảnh lên", type=["jpg", "jpeg", "png", "bmp", "tif", "webp"])
+    
+    if uploaded_file:
+        data = uploaded_file.read()
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+
+        if img is None:
+            st.error("⚠ Không thể tải ảnh. Hãy thử ảnh khác!")
+        else:
+            st.image(img, caption="📷 Ảnh đã tải lên", use_column_width=True)
+
+            # Lựa chọn chương xử lý ảnh số
+            chapter_choice = st.sidebar.radio("Chọn chương:", ["Chapter 3", "Chapter 4", "Chapter 9"])
+
+            if chapter_choice == "Chapter 3":
+                img = chapter3_operations(img)
+            elif chapter_choice == "Chapter 4":
+                img = chapter4_operations(img)
+            elif chapter_choice == "Chapter 9":
+                img = chapter9_operations(img)
+
+            # Lưu ảnh đã xử lý
+            save_image(img)
+
+        
+
 
 # === 8) Đọc chữ viết tay ===
 elif menu == "Đọc chữ viết tay":
     st.header("✍️ Đọc chữ viết tay")
     uploaded = st.file_uploader("Tải ảnh viết tay lên", type=["jpg","jpeg","png","bmp"])
     if uploaded:
-        data = uploaded.read()
-        orig = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
-        st.image(orig, caption="Ảnh viết tay gốc", use_column_width=True, clamp=True, channels="GRAY")
+       data = uploaded.read()
+       orig = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
+       st.image(orig, caption="Ảnh viết tay gốc", use_column_width=True, clamp=True, channels="GRAY")
 
-        x = preprocess_image_gray(orig)
-        model_path = os.path.join("model", "best_model.h5")
-        model_ocr = build_inference_model(model_path)
-        preds = model_ocr.predict(x)
-        seq = ctc_decode(preds)[0]
-        text = num_to_text(seq)
-        st.success(f"**Kết quả OCR:** {text}")
+       x = preprocess_image_gray(orig)
+       model_path = os.path.join("model", "best_model.h5")
+       model_ocr = build_inference_model(model_path)
+       preds = model_ocr.predict(x)
+       seq = ctc_decode(preds)[0]
+       text = num_to_text(seq)
+       st.success(f"**Kết quả OCR:** {text}")
 
 st.markdown("---")
 st.caption("Demo bởi HieuDuong.")
