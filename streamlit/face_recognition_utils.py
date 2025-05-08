@@ -5,7 +5,7 @@ import cv2 as cv
 import joblib
 from PIL import Image
 
-mydict = ['DaiLong', 'MinhHieu', 'VanThang', 'caothang']
+mydict = ['DaiLong', 'MinhHieu', 'MinhHoang', 'VanThang', 'caothang']
 
 # Load model 1 lần
 svc = joblib.load('model/svc.pkl')

@@ -10,7 +10,7 @@ model_dir = os.path.join(current_dir, 'model')  # Thư mục chứa .onnx và sv
 
 # Tải mô hình SVM
 svc = joblib.load(os.path.join(model_dir, 'svc.pkl'))
-mydict = ['DaiLong' 'MinhHieu' 'MinhHoang' 'VanThang' 'caothang']
+mydict = ['DaiLong', 'MinhHieu', 'MinhHoang', 'VanThang', 'caothang']
 
 class VProcessor:
     def __init__(self):
